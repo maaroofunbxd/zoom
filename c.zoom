@@ -1,0 +1,13 @@
+sequence slow_crawl   = 1 / sqrt(n)
+sequence fake_settle  = log(n)
+
+# Passes, but notice how huge the cutoff numbers get compared to 1/n!
+test limit of slow_crawl to 0:
+  goal(0.2)  -> cutoff
+  goal(0.05) -> cutoff
+
+# Fails Cauchy: even though consecutive steps get closer (log(n+1) - log(n) -> 0),
+# over an 80-step window it still drifts apart.
+test cauchy of fake_settle:
+  goal(0.5)  -> cutoff
+  goal(0.05) -> cutoff

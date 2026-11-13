@@ -1,0 +1,11 @@
+curve parabola = x ** 2
+
+# Passes: on [0, 2], the steepest slope is 4, so one single buffer works everywhere.
+test uniform_continuity of parabola on [0, 2]:
+  goal(0.1)  -> single buffer
+  goal(0.02) -> single buffer
+
+# Breaks: on [0, 100], the curve gets so steep near x = 100 that a buffer
+# that worked at x = 1 scrapes the ceiling near x = 100.
+test uniform_continuity of parabola on [0, 100]:
+  goal(0.02) -> single buffer

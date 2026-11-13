@@ -1,0 +1,4 @@
+curve parabola = x ** 2
+
+test uniform_continuity of parabola on [0, 2]:
+  goal(0.1) -> single buffer

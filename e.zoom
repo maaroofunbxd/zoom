@@ -1,0 +1,16 @@
+curve smooth_pinch = x * abs(x)
+curve cube_root    = abs(x) ** (1/3)
+
+# Passes: even though abs(x) has a sharp corner, multiplying by x rounds it off!
+# At 1000x zoom, flatness hits ~100% with slope 0.
+test derivative of smooth_pinch at 0.0:
+  zoom(10)
+  zoom(100)
+  zoom(1000)
+
+# Breaks: vertical tangent! As you zoom in, the left and right slopes blow up
+# in opposite directions instead of flattening out.
+test derivative of cube_root at 0.0:
+  zoom to 10x
+  zoom to 100x
+  zoom to 1000x

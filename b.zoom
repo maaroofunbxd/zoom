@@ -1,0 +1,63 @@
+# ---------------------------------------------------------
+# PART A: CLEAN EVERYDAY BLUEPRINTS (No Symbols)
+# ---------------------------------------------------------
+define Continuity vs Uniform Continuity:
+  # Notice how 'point(x)' disappears from the input side of the arrow!
+  local_continuity:   point(x) + goal(g) -> buffer(b)        -> stays inside goal
+  uniform_continuity: goal(g)            -> single buffer(b) -> stays inside goal everywhere
+
+define Limit vs Cauchy:
+  limit:  goal(g) around target -> cutoff(n) -> every step past cutoff hits goal
+  cauchy: goal(g) gap           -> cutoff(n) -> every pair past cutoff stays within goal
+
+# ---------------------------------------------------------
+# PART B: TESTING REAL SEQUENCES & CURVES
+# ---------------------------------------------------------
+sequence shrinking = 1 / n
+sequence bouncing  = (-1) ** n
+
+# 1. Wiring Syntax style:
+test limit of shrinking to 0:
+  goal(0.1)   -> cutoff
+  goal(0.01)  -> cutoff
+  goal(0.002) -> cutoff
+
+# 2. Plain-English style (parses into the exact same engine):
+test limit of bouncing to 0:
+  given goal = 1.5, find cutoff where every step hits goal
+  given goal = 0.5, find cutoff where every step hits goal
+
+# 3. Cauchy test (settling without knowing the target):
+test cauchy of shrinking:
+  goal(0.05)  -> cutoff
+  goal(0.005) -> cutoff
+
+# 4. Continuity at a point (Goal -> Buffer):
+curve gentle_wave = sin(x)
+curve cliff_edge  = 1 / x
+
+test continuity of gentle_wave at 1.0:
+  given goal = 0.1,  find buffer
+  given goal = 0.01, find buffer
+
+# 5. Uniform Continuity across a whole interval (Goal -> Single Buffer):
+test uniform_continuity of gentle_wave on [0, 6.28]:
+  goal(0.1)  -> single buffer
+  goal(0.02) -> single buffer
+
+test uniform_continuity of cliff_edge on [0.01, 2.0]:
+  goal(0.1) -> single buffer
+
+# 6. Zoom Smoothness test (Derivative vs Sharp Corner):
+curve smooth_hill  = x ** 2
+curve sharp_corner = abs(x)
+
+test derivative of smooth_hill at 1.0:
+  zoom(10)
+  zoom(100)
+  zoom(1000)
+
+test derivative of sharp_corner at 0.0:
+  zoom to 10x
+  zoom to 100x
+  zoom to 1000x
