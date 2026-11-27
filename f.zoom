@@ -1,0 +1,18 @@
+# 1. Real Analysis visual (sequence entering the goal band past cutoff)
+sequence wave_decay = sin(n) / n
+test limit of wave_decay to 0:
+  goal(0.05) -> cutoff
+
+# 2. Complex Holomorphic function (all 8 compass slopes collapse to one point)
+complex_func square = z ** 2
+test complex_derivative of square at 1+2j:
+  step(0.1)    -> check slope
+  step(0.0001) -> check slope
+  goal(0.001)
+
+# 3. Non-Holomorphic complex function (8 compass slopes spread into a circle!)
+complex_func mirror = z.conjugate()
+test complex_derivative of mirror at 1+2j:
+  step(0.1)    -> check slope
+  step(0.0001) -> check slope
+  goal(0.001)

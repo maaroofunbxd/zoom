@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Zoom Analysis Visualizer</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; margin: 24px; }
+  h1 { font-size: 1.3rem; margin-bottom: 16px; color: #38bdf8; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 20px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; }
+  .card h2 { font-size: 1rem; margin: 0 0 10px 0; color: #f8fafc; }
+  canvas { width: 100%; height: 280px; background: #0b1120; border-radius: 6px; display: block; }
+  .legend { font-size: 0.82rem; color: #94a3b8; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>ZOOM — Visual Geometry Output</h1>
+<div class="grid" id="cards"></div>
+<script>
+const DATA = [{"type": "limit", "title": "Limit: sin(n) / n -> 0.0", "values": [0.8414709848078965, 0.45464871341284085, 0.0470400026866224, -0.18920062382698208, -0.1917848549326277, -0.04656924969982098, 0.09385522838839844, 0.12366978082792272, 0.04579094280463962, -0.05440211108893698, -0.0909082005955185, -0.04471440983336958, 0.03232054129435699, 0.07075766826391931, 0.04335252267714112, -0.01799395729156658, -0.05655279363997393, -0.04172151370953756, 0.007888274192786966, 0.045647262536381385, 0.03984074469219314, -0.00040233224047290345, -0.036792191485876986, -0.037732431750276, -0.005294070003910922, 0.02932917117229241, 0.03542133068164826, 0.009675206725281037, -0.022883927041826468, -0.03293438746976206, -0.013033472429776292, 0.01723208378880283, 0.030300359397189915, 0.015561255474118348, -0.012233790557032886, -0.027549412595642104, -0.017392922523162147, 0.007799173123931193, 0.024712702212412507, 0.01862782901198372], "target": 0.0, "goal": 0.05, "cutoff": 18}, {"type": "complex_derivative", "title": "Complex 360\u00b0 Slope: z ** 2 at z=(1+2j)", "slopes": [[2.000099999999172, 3.9999999999995595], [2.000070710672736, 4.000070710677203], [2.00000000000422, 4.0001000000078335], [1.9999292893204983, 4.000070710680344], [1.9999000000003868, 3.9999999999995595], [1.9999292893236378, 3.999929289321826], [1.9999999999997788, 3.9999000000001677], [2.0000707106758755, 3.999929289318686]], "goal": 0.001, "passed": true}, {"type": "complex_derivative", "title": "Complex 360\u00b0 Slope: z.conjugate() at z=(1+2j)", "slopes": [[0.9999999999998899, 0.0], [0.0, -0.9999999999990936], [-1.0000000000021103, -6.123233995749687e-17], [7.850462293418875e-13, 0.9999999999998787], [0.9999999999998899, 1.2246467991472184e-16], [7.851572516443499e-13, -0.9999999999998785], [-0.9999999999998899, -1.8369701987208273e-16], [-1.6653345369362256e-16, 0.9999999999990936]], "goal": 0.001, "passed": false}];
+const container = document.getElementById("cards");
+
+DATA.forEach((item) => {
+  const card = document.createElement("div");
+  card.className = "card";
+  const title = document.createElement("h2");
+  title.textContent = item.title;
+  const canvas = document.createElement("canvas");
+  canvas.width = 520;
+  canvas.height = 280;
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  card.append(title, canvas, legend);
+  container.appendChild(card);
+
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height, PAD = 32;
+
+  if (item.type === "limit") {
+    const vals = item.values;
+    const minY = Math.min(...vals, item.target - item.goal * 1.5);
+    const maxY = Math.max(...vals, item.target + item.goal * 1.5);
+    const mapX = i => PAD + (i / Math.max(1, vals.length - 1)) * (W - 2 * PAD);
+    const mapY = y => H - PAD - ((y - minY) / (maxY - minY || 1)) * (H - 2 * PAD);
+
+    // Goal band
+    const yTop = mapY(item.target + item.goal);
+    const yBot = mapY(item.target - item.goal);
+    ctx.fillStyle = "rgba(34, 197, 94, 0.15)";
+    ctx.fillRect(PAD, yTop, W - 2 * PAD, yBot - yTop);
+    ctx.strokeStyle = "#22c55e";
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(PAD, yTop); ctx.lineTo(W - PAD, yTop);
+    ctx.moveTo(PAD, yBot); ctx.lineTo(W - PAD, yBot); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Cutoff line
+    if (item.cutoff && item.cutoff <= vals.length) {
+      const cx = mapX(item.cutoff - 1);
+      ctx.strokeStyle = "#f59e0b";
+      ctx.beginPath(); ctx.moveTo(cx, PAD); ctx.lineTo(cx, H - PAD); ctx.stroke();
+    }
+
+    // Sequence dots
+    vals.forEach((v, i) => {
+      ctx.fillStyle = (item.cutoff && i + 1 >= item.cutoff) ? "#4ade80" : "#38bdf8";
+      ctx.beginPath(); ctx.arc(mapX(i), mapY(v), 3.2, 0, Math.PI * 2); ctx.fill();
+    });
+    legend.textContent = `Green band: target ± goal (${item.goal}) | Amber line: cutoff (${item.cutoff ?? "none"})`;
+  }
+
+  if (item.type === "continuity" || item.type === "derivative") {
+    const xs = item.xs, ys = item.ys.filter(v => v !== null);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys, item.center_y - (item.goal || 0.2) * 1.5);
+    const maxY = Math.max(...ys, item.center_y + (item.goal || 0.2) * 1.5);
+    const mapX = x => PAD + ((x - minX) / (maxX - minX || 1)) * (W - 2 * PAD);
+    const mapY = y => H - PAD - ((y - minY) / (maxY - minY || 1)) * (H - 2 * PAD);
+
+    if (item.type === "continuity") {
+      const yTop = mapY(item.center_y + item.goal);
+      const yBot = mapY(item.center_y - item.goal);
+      ctx.fillStyle = "rgba(34, 197, 94, 0.14)";
+      ctx.fillRect(PAD, yTop, W - 2 * PAD, yBot - yTop);
+      if (item.buffer) {
+        const xL = mapX(item.at_x - item.buffer);
+        const xR = mapX(item.at_x + item.buffer);
+        ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+        ctx.fillRect(xL, PAD, xR - xL, H - 2 * PAD);
+      }
+      legend.textContent = `Green horizontal: goal (±${item.goal}) | Blue vertical: buffer (±${item.buffer ?? "none"})`;
+    } else {
+      // Tangent line
+      const x1 = minX, x2 = maxX;
+      const y1 = item.center_y + item.slope * (x1 - item.at_x);
+      const y2 = item.center_y + item.slope * (x2 - item.at_x);
+      ctx.strokeStyle = item.passed ? "#22c55e" : "#ef4444";
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(mapX(x1), mapY(y1)); ctx.lineTo(mapX(x2), mapY(y2)); ctx.stroke();
+      ctx.setLineDash([]);
+      legend.textContent = `Dashed line: estimated slope (${item.slope.toFixed(4)}) at x = ${item.at_x}`;
+    }
+
+    // Curve
+    ctx.strokeStyle = "#f8fafc";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    item.xs.forEach((x, i) => {
+      const y = item.ys[i];
+      if (y === null) return;
+      if (i === 0 || item.ys[i - 1] === null) ctx.moveTo(mapX(x), mapY(y));
+      else ctx.lineTo(mapX(x), mapY(y));
+    });
+    ctx.stroke();
+  }
+
+  if (item.type === "complex_derivative") {
+    const pts = item.slopes;
+    const meanRe = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+    const meanIm = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    const maxR = Math.max(...pts.map(p => Math.hypot(p[0] - meanRe, p[1] - meanIm)), item.goal * 1.5, 0.01);
+    const cx = W / 2, cy = H / 2, scale = (Math.min(W, H) / 2 - PAD) / maxR;
+
+    // Goal disk
+    ctx.strokeStyle = "#22c55e";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(cx, cy, item.goal * scale, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const dirs = ["E", "NE", "N", "NW", "W", "SW", "S", "SE"];
+    pts.forEach((p, idx) => {
+      const px = cx + (p[0] - meanRe) * scale;
+      const py = cy - (p[1] - meanIm) * scale;
+      ctx.fillStyle = item.passed ? "#4ade80" : "#f87171";
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "11px sans-serif";
+      ctx.fillText(dirs[idx], px + 7, py + 4);
+    });
+    legend.textContent = `8 compass directional slopes relative to center (${meanRe.toFixed(2)} + ${meanIm.toFixed(2)}i) | Green circle = goal(${item.goal})`;
+  }
+});
+</script>
+</body>
+</html>
